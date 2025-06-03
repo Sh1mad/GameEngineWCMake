@@ -41,6 +41,7 @@ add_executable(MyGameEngineIDE
     src/Physics.cpp
     src/EditorUI.cpp
     src/ResourceManager.cpp
+    src/WindowRenderer.cpp
 )
 
 target_include_directories(MyGameEngineIDE PRIVATE

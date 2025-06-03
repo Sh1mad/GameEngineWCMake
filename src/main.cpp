@@ -1,110 +1,67 @@
-﻿#include <iostream>
-#include "WindowManager.h"
-#include "Renderer.h"
-#include "InputManager.h"
-#include "Physics.h"
-#include "Entity.h"
-#include "EntityManager.h"
-#include "ResourceManager.h"
-#include <filesystem>
+﻿#include "Core.h"
+#include "WindowRenderer.h"
+#include <imGui.h>
+#include <imGui-SFML.h>
 
-int test() {
-    std::cout << "Рабочая директория: " << std::filesystem::current_path().string() << std::endl;
+int main() {
+    sf::RenderWindow window(sf::VideoMode(800, 600), "Game Engine");
+    ImGui::SFML::Init(window);
 
-    try {
-        WindowManager windowManager;
-        Renderer renderer;
-        InputManager inputManager;
-        PhysicsManager physics;
-        EntityManager entityManager;
+    WindowRenderer windowRenderer(window);
+    AppState state = AppState::MainMenu;
 
-        // Создание окна
-        windowManager.createWindow("Simple Game", 800, 600);
-        renderer.setWindow(windowManager.getWindowPtr());
-        inputManager.setWindow(windowManager.getWindowPtr());
-
-        // Создание объектов через ResourceManager
-        auto& playerTexture = ResourceManager::getTexture("assets/textures/player.png");
-        auto& platformTexture = ResourceManager::getTexture("assets/textures/platform.png");
-
-        auto player = std::make_shared<Entity>(playerTexture, 100, 100, 0, 0);
-        player->makeMoveable();
-        auto platform = std::make_shared<Entity>(platformTexture, 0, 500, 0, 0);
-        platform->makeStatic();
-
-        entityManager.addEntity(player);
-        entityManager.addEntity(platform);
-
-        physics.setGravity(1000.0f, GravityDirection::Down);
-
-        sf::Clock clock;
-
-        // Главный игровой цикл
-        while (windowManager.isWindowOpen()) {
-            sf::Event event;
-            while (windowManager.getWindow().pollEvent(event)) {
-                if (event.type == sf::Event::Closed)
-                    windowManager.closeWindow();
-
-                inputManager.pollEvents(event);
-            }
-
-            float deltaTime = clock.restart().asSeconds();
-
-            // Логика управления игроком
-            if (player->checkMoveable()) {
-                sf::Vector2f speed = player->getSpeed();
-
-                if (inputManager.isKeyPressed(sf::Keyboard::A))
-                    speed.x = -300;
-                else if (inputManager.isKeyPressed(sf::Keyboard::D))
-                    speed.x = 300;
-                else
-                    speed.x = 0;
-
-                static bool spacePressed = false;
-
-                if (inputManager.isKeyPressed(sf::Keyboard::Space)) {
-                    // Однократный прыжок (проверяется через isOnGround)
-                    if (!spacePressed) {
-                        speed.y = -500;
-                        spacePressed = true;
-                    }
-                }
-                else {
-                    spacePressed = false;
-                }
-
-                player->setSpeed(speed);
-            }
-
-            // Физика
-            for (auto& entity : entityManager.getEntities()) {
-                physics.applyGravity(*entity, deltaTime);
-                physics.moveObject(*entity, deltaTime);
-
-                for (auto& other : entityManager.getEntities()) {
-                    if (entity != other) {
-                        physics.handleCollision(*entity, *other);
-                    }
-                }
-            }
-
-            // Отрисовка
-            renderer.clear();
-            for (auto& entity : entityManager.getEntities()) {
-                if (sf::Sprite* sprite = entity->getSprite()) {
-                    renderer.drawSprite(*sprite);
-                }
-            }
-            renderer.display();
+    sf::Clock deltaClock;
+    while (window.isOpen()) {
+        sf::Event event;
+        while (window.pollEvent(event)) {
+            ImGui::SFML::ProcessEvent(event);
+            if (event.type == sf::Event::Closed)
+                window.close();
         }
 
-    }
-    catch (const std::exception& e) {
-        std::cerr << "Ошибка: " << e.what() << std::endl;
-        return 1;
+        ImGui::SFML::Update(window, deltaClock.restart());
+
+        state = windowRenderer.render(state); // Рендер текущего окна
+
+        window.clear();
+        ImGui::Render();
+        ImGui::SFML::Render(window);
+        window.display();
     }
 
+    ImGui::SFML::Shutdown();
     return 0;
 }
+
+// int main() {
+//     sf::RenderWindow window(sf::VideoMode(640, 480), "ImGui + SFML = <3");
+//     window.setFramerateLimit(60);
+//     ImGui::SFML::Init(window);
+
+
+//     sf::Clock deltaClock;
+//     while (window.isOpen()) {
+//         sf::Event event;
+//         while (window.pollEvent(event)) {
+//             ImGui::SFML::ProcessEvent(window, event);
+
+//             if (event.type == sf::Event::Closed) {
+//                 window.close();
+//             }
+//         }
+
+//         ImGui::SFML::Update(window, deltaClock.restart());
+
+//         //ImGui::ShowDemoWindow();
+
+//         ImGui::Begin("Hello, world!");
+//         ImGui::Button("Look at this pretty button");
+//         ImGui::End();
+
+//         window.clear();
+//         ImGui::SFML::Render(window);
+//         window.display();
+//     }
+
+//     ImGui::SFML::Shutdown();
+// }
