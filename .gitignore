@@ -1,0 +1,14 @@
+# Игнорировать папку сборки
+build/
+
+# Игнорировать папку с CMake файлами
+CMakeFiles/
+
+# Игнорировать библиотеки (предполагется установка вручную)
+/external/imGui/*
+/external/imGui-SFML/*
+/external/sfml/*
+
+# Игнорировать ресурсы (шрифты, текстуры, звуки)
+/assets/fonts/*
+/assets/textures/*
