@@ -23,6 +23,9 @@ public:
 	// Удаление объекта
 	void removeEntity(std::shared_ptr<Entity> entity);
 
+	// Очистка сущностей
+	void clear();
+
 };
 
 #endif // !ENTITY_MANAGER_H

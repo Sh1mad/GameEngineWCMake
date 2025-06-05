@@ -1,4 +1,5 @@
 ﻿#include "Entity.h"
+#include "ResourceManager.h"
 
 // Конструктор по умолчанию
 Entity::Entity() {
@@ -6,11 +7,49 @@ Entity::Entity() {
 }
 
 // Конструктор с текстурой и начальными координатами
-Entity::Entity(sf::Texture& texture, float x, float y, float speed_x, float speed_y)
-    : speed(speed_x, speed_y), position(x, y) {
+Entity::Entity(const std::string& texturePath, int ID, float x, float y, float speed_x, float speed_y)
+    : speed(speed_x, speed_y), position(x, y), id(ID), texturePath(texturePath)
+{
+    const sf::Texture& texture = ResourceManager::getTexture(this->texturePath);
     sprite.setTexture(texture);
     sprite.setPosition(position);
     moveable = true;
+}
+
+// Текстура с указанием региона
+Entity::Entity(const std::string& texturePath, const sf::IntRect& textureRect, int ID,
+               float x, float y, float speedX, float speedY)
+    : texturePath(texturePath), speed(speedX, speedY), position(x, y), id(ID)
+{
+    const sf::Texture& texture = ResourceManager::getTexture(this->texturePath);
+    sprite.setTexture(texture);
+    sprite.setTextureRect(textureRect);
+    sprite.setPosition(x, y);
+}
+
+// Геттер пути к текстуре
+std::string Entity::getTexturePath() const{
+    return texturePath;
+}
+
+// Задание региона текстуры
+void Entity::setTextureRect(const sf::IntRect& rect) {
+    sprite.setTextureRect(rect);
+}
+
+// Получение региона текстуры
+const sf::IntRect& Entity::getTextureRect() const {
+    return sprite.getTextureRect();
+}
+
+// Сеттер ID
+void Entity::setId(int ID){
+    id = ID;
+}
+
+// Геттер ID
+int Entity::getId() const{
+    return id;
 }
 
 // Установка скорости

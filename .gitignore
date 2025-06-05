@@ -12,3 +12,8 @@ CMakeFiles/
 # Игнорировать ресурсы (шрифты, текстуры, звуки)
 /assets/fonts/*
 /assets/textures/*
+
+# Игнорировать папку с проектами
+projects/
+
+example_gui_mainmenu.txt

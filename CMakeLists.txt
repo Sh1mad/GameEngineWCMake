@@ -23,6 +23,9 @@ set(SFML_LIB_SYSTEM   ${SFML_DIR}/lib/libsfml-system.a)
 include_directories(${PROJECT_SOURCE_DIR}/external/imgui)
 include_directories(${PROJECT_SOURCE_DIR}/external/imgui-sfml)
 
+# Подключение json
+include_directories(${PROJECT_SOURCE_DIR}/external/json)
+
 file(GLOB IMGUI_SOURCES
     "${PROJECT_SOURCE_DIR}/external/imgui/*.cpp"
     "${PROJECT_SOURCE_DIR}/external/imgui-sfml/ImGui-SFML.cpp"
@@ -42,6 +45,7 @@ add_executable(MyGameEngineIDE
     src/EditorUI.cpp
     src/ResourceManager.cpp
     src/WindowRenderer.cpp
+    src/ProjectManager.cpp
 )
 
 target_include_directories(MyGameEngineIDE PRIVATE
@@ -50,6 +54,7 @@ target_include_directories(MyGameEngineIDE PRIVATE
     ${SFML_DIR}/include
     external/imgui
     external/imgui-sfml
+    external/json
 )
 
 # Линковка SFML и ImGui
