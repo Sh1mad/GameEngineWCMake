@@ -6,7 +6,7 @@
 #include "ResourceManager.h"
 #include <imgui.h>
 #include <imgui-SFML.h>
-#include <tinyfiledialogs.h>
+#include <tinyfiledialogs.h> // Библиотека для работы с файлами в файловой системе
 
 EditorUI::EditorUI(sf::RenderWindow& window, EntityManager& entityManager, ProjectManager& projectManager)
     : m_window(window), m_entityManager(entityManager), m_projectManager(projectManager){}
