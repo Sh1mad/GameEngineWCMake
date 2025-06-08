@@ -18,6 +18,9 @@ public:
         int windowHeight = 600;
         bool fullscreen = false;
         std::string assetsPath = "assets/";
+
+        // Список текстур проекта: имя -> путь
+        std::unordered_map<std::string, std::string> textures;
     };
 
     // Конструктор

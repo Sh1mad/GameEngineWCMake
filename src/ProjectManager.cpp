@@ -1,4 +1,5 @@
 #include "ProjectManager.h"
+#include "ResourceManager.h"
 #include <fstream>
 #include <iostream>
 #include <filesystem>
@@ -44,6 +45,25 @@ bool ProjectManager::openProject(const std::string& path) {
     currentProject.fullscreen = projectJson["window"].value("fullscreen", false);
     currentProject.assetsPath = projectJson.value("assets_path", "assets");
 
+    // === Восстанавливаем текстуры ===
+    if (projectJson.contains("textures")) {
+        for (const auto& textureJson : projectJson["textures"]) {
+            std::string name = textureJson.value("name", "");
+            std::string path = textureJson.value("path", "");
+
+            if (name.empty() || path.empty())
+                continue;
+
+            try {
+                // Путь относительно assetsPath
+                std::string fullPath = currentProject.assetsPath + "/" + path;
+                ResourceManager::loadTexture(name, fullPath); // ← Загружаем текстуру по имени
+            } catch (const std::exception& e) {
+                std::cerr << "Ошибка при загрузке текстуры '" << name << "': " << e.what() << std::endl;
+            }
+        }
+    }
+    
     entityManager.clear(); // Очищаем текущие сущности
 
     if (projectJson.contains("entities")) {
@@ -160,6 +180,17 @@ bool ProjectManager::saveProjectToFile(const std::string& filePath) {
     projectJson["window"]["height"] = currentProject.windowHeight;
     projectJson["window"]["fullscreen"] = currentProject.fullscreen;
     projectJson["assets_path"] = currentProject.assetsPath;
+
+    // === Сохраняем текстуры ===
+    const auto& allTextures = ResourceManager::getAllTextures();
+    json texturesJson = json::array();
+
+    for (const auto& [name, info] : allTextures) {
+        json textureJson;
+        textureJson["name"] = name;
+        textureJson["path"] = info.filePath;
+        texturesJson.push_back(textureJson);
+    }
 
     // Список сущностей
     json entitiesJson = json::array();
