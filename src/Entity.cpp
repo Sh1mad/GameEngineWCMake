@@ -6,30 +6,31 @@ Entity::Entity() {
     // Можно установить стандартную текстуру или оставить пустым
 }
 
-// Конструктор с текстурой и начальными координатами
-Entity::Entity(const std::string& texturePath, int ID, float x, float y, float speed_x, float speed_y)
-    : speed(speed_x, speed_y), position(x, y), id(ID), texturePath(texturePath)
+// Конструктор с текстурой по имени
+Entity::Entity(const std::string& textureName, int ID, float x, float y, float speed_x, float speed_y)
+    : speed(speed_x, speed_y), position(x, y), id(ID), textureName(textureName)
 {
-    const sf::Texture& texture = ResourceManager::getTexture(this->texturePath);
+    const sf::Texture& texture = ResourceManager::getTexture(textureName);
     sprite.setTexture(texture);
     sprite.setPosition(position);
     moveable = true;
 }
 
-// Текстура с указанием региона
-Entity::Entity(const std::string& texturePath, const sf::IntRect& textureRect, int ID,
+// Конструктор с регионом текстуры
+Entity::Entity(const std::string& textureName, const sf::IntRect& textureRect, int ID,
                float x, float y, float speedX, float speedY)
-    : texturePath(texturePath), speed(speedX, speedY), position(x, y), id(ID)
+    : textureName(textureName), speed(speedX, speedY), position(x, y), id(ID)
 {
-    const sf::Texture& texture = ResourceManager::getTexture(this->texturePath);
+    const sf::Texture& texture = ResourceManager::getTexture(textureName);
     sprite.setTexture(texture);
     sprite.setTextureRect(textureRect);
     sprite.setPosition(x, y);
+    moveable = true;
 }
 
 // Геттер пути к текстуре
 std::string Entity::getTexturePath() const{
-    return texturePath;
+    return ResourceManager::getPath(textureName);
 }
 
 // Задание региона текстуры
@@ -110,7 +111,19 @@ const sf::Texture* Entity::getTexture() const {
     return sprite.getTexture();
 }
 
-// Установка текстуры
-void Entity::setTexture(const sf::Texture& texture) {
-    sprite.setTexture(texture);
+void Entity::setTextureName(const std::string& name) {
+    if (name == textureName)
+        return;
+
+    const sf::Texture& newTexture = ResourceManager::getTexture(name);
+    sprite.setTexture(newTexture);
+    textureName = name;
+}
+
+const std::string& Entity::getTextureName() const {
+    return textureName;
+}
+
+void Entity::setTexture(const std::string& textureName) {
+    this->setTextureName(textureName);
 }

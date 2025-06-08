@@ -8,6 +8,7 @@ CMakeFiles/
 /external/imGui/*
 /external/imGui-SFML/*
 /external/sfml/*
+/external/tinyFileDialogs/*
 
 # Игнорировать ресурсы (шрифты, текстуры, звуки)
 /assets/fonts/*

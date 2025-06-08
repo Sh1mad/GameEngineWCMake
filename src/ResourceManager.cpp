@@ -1,22 +1,41 @@
 ﻿#include "ResourceManager.h"
-#include <iostream>
-#include <stdexcept>
 
-// Инициализация статического поля
-std::unordered_map<std::string, sf::Texture> ResourceManager::textures;
+std::unordered_map<std::string, TextureInfo> ResourceManager::textures;
 
-sf::Texture& ResourceManager::getTexture(const std::string& path) {
-	auto it = textures.find(path);
+bool ResourceManager::loadTexture(const std::string& name, const std::string& path) {
+    sf::Texture sfmlTexture;
+    if (!sfmlTexture.loadFromFile(path))
+        return false;
 
-	if (it != textures.end()) return it->second;   // Возвращаем существующую текстуру
+    TextureInfo info;
+    info.texture = std::move(sfmlTexture);
+    info.filePath = path;
 
-	// Текстура еще не загружена - загружаем
-	sf::Texture texture;
-	if (!texture.loadFromFile(path)) {
-		throw std::runtime_error("Unable to load a texture with this way: " + path);
-	}
+    auto result = textures.emplace(name, std::move(info));
+    return result.second;
+}
 
-	// Сохраняем в кэш и возвращаем
-	auto result = textures.emplace(path, std::move(texture));
-	return result.first->second;
+sf::Texture& ResourceManager::getTexture(const std::string& name) {
+    auto it = textures.find(name);
+    if (it == textures.end()) {
+        throw std::runtime_error("Текстура не найдена: " + name);
+    }
+    return it->second.texture;
+}
+
+void ResourceManager::removeTexture(const std::string& name) {
+    textures.erase(name);
+}
+
+const std::string& ResourceManager::getPath(const std::string& name) {
+    auto it = textures.find(name);
+    if (it == textures.end()) {
+        static std::string empty = "";
+        return empty;
+    }
+    return it->second.filePath;
+}
+
+const std::unordered_map<std::string, TextureInfo>& ResourceManager::getAllTextures() {
+    return textures;
 }

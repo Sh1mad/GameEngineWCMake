@@ -26,6 +26,9 @@ include_directories(${PROJECT_SOURCE_DIR}/external/imgui-sfml)
 # Подключение json
 include_directories(${PROJECT_SOURCE_DIR}/external/json)
 
+# Подключение tinyfiledialogs
+include_directories(${PROJECT_SOURCE_DIR}/external/tinyFileDialogs)
+
 file(GLOB IMGUI_SOURCES
     "${PROJECT_SOURCE_DIR}/external/imgui/*.cpp"
     "${PROJECT_SOURCE_DIR}/external/imgui-sfml/ImGui-SFML.cpp"
@@ -46,6 +49,7 @@ add_executable(MyGameEngineIDE
     src/ResourceManager.cpp
     src/WindowRenderer.cpp
     src/ProjectManager.cpp
+    external/tinyFileDialogs/tinyfiledialogs.c
 )
 
 target_include_directories(MyGameEngineIDE PRIVATE
@@ -55,6 +59,7 @@ target_include_directories(MyGameEngineIDE PRIVATE
     external/imgui
     external/imgui-sfml
     external/json
+    external/tinyFileDialogues
 )
 
 # Линковка SFML и ImGui

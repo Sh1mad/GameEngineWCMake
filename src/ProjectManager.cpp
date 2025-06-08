@@ -32,24 +32,17 @@ bool ProjectManager::openProject(const std::string& path) {
         return false;
     }
 
-    std::cout << "File exists!" << std::endl;
-
     json projectJson = readJsonFile(path);
-    std::cout << "readJsonFile works properly!" << std::endl;
     if (projectJson.is_null()) {
         std::cerr << "!!! Error reading project file !!!" << std::endl;
         return false;
     }
-
-    std::cout << "File isn't null" << std::endl;
 
     currentProject.name = projectJson.value("name", "Unnamed Project");
     currentProject.windowWidth = projectJson["window"].value("width", 800);
     currentProject.windowHeight = projectJson["window"].value("height", 600);
     currentProject.fullscreen = projectJson["window"].value("fullscreen", false);
     currentProject.assetsPath = projectJson.value("assets_path", "assets");
-
-    std::cout << "File data process properly" << std::endl;
 
     entityManager.clear(); // Очищаем текущие сущности
 
@@ -82,10 +75,10 @@ bool ProjectManager::openProject(const std::string& path) {
                 vy = entityJson["speed"][1];
             }
 
-            // Получаем путь к текстуре
-            std::string texturePath = entityJson.value("texture", "");
-            if (texturePath.empty()) {
-                std::cerr << "Ошибка: у сущности ID=" << id << " отсутствует путь к текстуре" << std::endl;
+            // Получаем имя текстуры
+            std::string textureName = entityJson.value("texture_name", "");
+            if (textureName.empty()) {
+                std::cerr << "Ошибка: у сущности ID=" << id << " отсутствует имя текстуры" << std::endl;
                 continue;
             }
 
@@ -110,9 +103,9 @@ bool ProjectManager::openProject(const std::string& path) {
                 std::shared_ptr<Entity> entity;
 
                 if (isTextureRect)
-                    entity = std::make_shared<Entity>(texturePath, textureRect, id, x, y, vx, vy);
+                    entity = std::make_shared<Entity>(textureName, textureRect, id, x, y, vx, vy);
                 else
-                    entity = std::make_shared<Entity>(texturePath, id, x, y, vx, vy);
+                    entity = std::make_shared<Entity>(textureName, id, x, y, vx, vy);
 
                 if (moveable) {
                     entity->makeMoveable();
@@ -175,7 +168,7 @@ bool ProjectManager::saveProjectToFile(const std::string& filePath) {
         entJson["id"] = entity->getId();
         entJson["position"] = {entity->getPosition().x, entity->getPosition().y};
         entJson["speed"] = {entity->getSpeed().x, entity->getSpeed().y};
-        entJson["texture"] = entity->getTexturePath(); // Путь относительно assets
+        entJson["texture_name"] = entity->getTextureName(); // Имя текстуры
         entJson["moveable"] = entity->checkMoveable();
 
         // Сохраняем регион текстуры

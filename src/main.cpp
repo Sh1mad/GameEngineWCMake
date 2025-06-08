@@ -2,55 +2,43 @@
 #include "ProjectManager.h"
 #include "Entity.h"
 #include "EntityManager.h"
+#include "WindowRenderer.h"
+#include "EditorUI.h"
+
+#include <imgui.h>
+#include <imgui-SFML.h>
 
 int main() {
-    try {
-        // Инициализируем ProjectManager
-        ProjectManager projectManager("../projects/TestProject");
+    sf::RenderWindow window(sf::VideoMode(800, 600), "Game Engine");
 
-        // 1. Создаём новый проект
-        std::cout << "Создаём новый проект..." << std::endl;
-        projectManager.createNewProject("TestGame", 800, 600, false);
+    ImGui::SFML::Init(window);
 
-        // 2. Добавляем сущность с регионом текстуры
-        sf::IntRect playerRect(0, 0, 32, 32);
-        auto entity = std::make_shared<Entity>("../assets/textures/player.png", 1, 100, 100, 0, 0);
-        entity->makeMoveable();
-        projectManager.getEntityManager().addEntity(entity);
+    ProjectManager projectManager("../projects/TestProject/");
+    projectManager.openProject("../projects/TestProject/project.json");
+    EntityManager& entityManager = projectManager.getEntityManager();
 
-        // 3. Сохраняем проект
-        std::cout << "Сохраняем проект..." << std::endl;
-        projectManager.saveCurrentProject();
+    EditorUI editorUI(window, entityManager, projectManager);
 
-        // 4. Очищаем текущий менеджер для теста загрузки
-        ProjectManager loader;
-        std::cout << "Загружаем проект..." << std::endl;
-        loader.openProject("../projects/TestProject/project.json");
+    sf::Clock deltaClock;
 
-        // 5. Проверяем данные после загрузки
-        const auto& loadedEntities = loader.getEntityManager().getEntities();
-        if (!loadedEntities.empty()) {
-            const auto& loadedEntity = loadedEntities[0];
-
-            std::cout << "ID: " << loadedEntity->getId() << std::endl;
-            std::cout << "Позиция: (" << loadedEntity->getPosition().x << ", " << loadedEntity->getPosition().y << ")" << std::endl;
-            std::cout << "Текстура: " << loadedEntity->getTexturePath() << std::endl;
-
-            sf::IntRect rect = loadedEntity->getTextureRect();
-            std::cout << "Регион текстуры: (" << rect.left << ", " << rect.top << ", " << rect.width << ", " << rect.height << ")" << std::endl;
-
-            std::cout << "Скорость: (" << loadedEntity->getSpeed().x << ", " << loadedEntity->getSpeed().y << ")" << std::endl;
-            std::cout << "Движимый: " << (loadedEntity->checkMoveable() ? "да" : "нет") << std::endl;
-
-            std::cout << "Тест пройден успешно!" << std::endl;
-        } else {
-            std::cerr << "Ошибка: сущности не загружены." << std::endl;
+    while (window.isOpen()) {
+        sf::Event event;
+        while (window.pollEvent(event)) {
+            ImGui::SFML::ProcessEvent(event);
+            if (event.type == sf::Event::Closed)
+                window.close();
         }
 
-    } catch (const std::exception& e) {
-        std::cerr << "Произошла ошибка: " << e.what() << std::endl;
-        return EXIT_FAILURE;
+        sf::Time dt = deltaClock.restart();
+        ImGui::SFML::Update(window, dt);
+
+        window.clear(sf::Color::Black);
+
+        editorUI.render(); // Вызов всех окон GUI
+
+        window.display();
     }
 
-    return EXIT_SUCCESS;
+    ImGui::SFML::Shutdown();
+    return 0;
 }
