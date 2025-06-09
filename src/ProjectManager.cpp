@@ -63,7 +63,7 @@ bool ProjectManager::openProject(const std::string& path) {
             }
         }
     }
-    
+
     entityManager.clear(); // Очищаем текущие сущности
 
     if (projectJson.contains("entities")) {
@@ -76,6 +76,12 @@ bool ProjectManager::openProject(const std::string& path) {
             int id = entityJson.value("id", -1);
             if (id == -1) {
                 std::cerr << "Ошибка: у сущности отсутствует ID." << std::endl;
+                continue;
+            }
+
+            std::string entityName = entityJson.value("entityName", "");
+            if (entityName == "") {
+                std::cerr << "Ошибка: у сущности отсутствует имя." << std::endl;
                 continue;
             }
 
@@ -133,7 +139,7 @@ bool ProjectManager::openProject(const std::string& path) {
                     entity->makeStatic();
                 }
 
-                entityManager.addEntity(entity);
+                entityManager.addEntity(entity, entityName);
             }
             catch (const std::exception& e) {
                 std::cerr << "Не удалось создать Entity ID=" << id << ": " << e.what() << std::endl;
@@ -197,6 +203,7 @@ bool ProjectManager::saveProjectToFile(const std::string& filePath) {
     for (auto& entity : entityManager.getEntities()) {
         json entJson;
         entJson["id"] = entity->getId();
+        entJson["entityName"] = entityManager.getEntityName(entity->getId());
         entJson["position"] = {entity->getPosition().x, entity->getPosition().y};
         entJson["speed"] = {entity->getSpeed().x, entity->getSpeed().y};
         entJson["texture_name"] = entity->getTextureName(); // Имя текстуры

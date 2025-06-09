@@ -9,7 +9,7 @@
 #include <imgui-SFML.h>
 
 int main() {
-    sf::RenderWindow window(sf::VideoMode(800, 600), "Game Engine");
+    sf::RenderWindow window(sf::VideoMode::getDesktopMode(), "Game Engine");
 
     ImGui::SFML::Init(window);
 

@@ -17,11 +17,19 @@ private:
 
     std::shared_ptr<Entity> selectedEntity = nullptr;
     std::string selectedTextureName;
+    std::string newEntityName = "NewEntity";
+    std::string selectedTextureNameForEntity;
+    
+    // Флаги для управления открытыми окнами
+    bool showTextureManager = false;
+    bool showSceneHierarchy = false;
+    bool showCreateEntityWindow = false;
 
     void drawMenuBar();                    // Функция для отрисовки панели меню в редакторе
-    void drawHierarchyWindow();            // Функция для отрисовки окна со списком сущностей
+    void drawSceneHierarchy();            // Функция для отрисовки окна со списком сущностей
     void drawInspectorWindow();            // Функция для просмотра и редактирования свойств конкретной сущности
     void drawGameView();
     void drawToolBar();                    // Функция для вывода панели инструментов
     void drawTextureManager();             // Функция для вывода окна с текстурами
+    void drawCreateEntityWindow();         // Функция для вывода окна создания сущности
 };

@@ -18,10 +18,11 @@ void EditorUI::update(sf::Time dt){
 void EditorUI::render() {
     drawMenuBar();
     drawToolBar();
-    drawHierarchyWindow();
-    drawInspectorWindow();
-    drawTextureManager();
-    //drawGameView();
+
+    if (showTextureManager) drawTextureManager();
+    if (showSceneHierarchy) drawSceneHierarchy();
+    if (selectedEntity) drawInspectorWindow();
+    if (showCreateEntityWindow) drawCreateEntityWindow();
 
     ImGui::Render();
     ImGui::SFML::Render(m_window);
@@ -59,22 +60,33 @@ void EditorUI::drawToolBar() {
     ImGui::SetNextWindowSize({m_window.getSize().x, 50});
     ImGui::Begin("##Toolbar", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize);
 
-    if (ImGui::Button("Play")) {
-        // TODO: Переключить на игровой режим
+    if (ImGui::Button("Textures")) {
+        showTextureManager = !showTextureManager;
     }
     ImGui::SameLine();
-    if (ImGui::Button("Pause")) {}
+
+    if (ImGui::Button("Entities")) {
+        showSceneHierarchy = !showSceneHierarchy;
+    }
     ImGui::SameLine();
-    if (ImGui::Button("Stop")) {}
-    ImGui::SameLine();
+
     if (ImGui::Button("Add Entity")) {
-        // TODO: добавить новую сущность
+        showCreateEntityWindow = !showCreateEntityWindow;
     }
 
     ImGui::End();
+
+    // === Диалог "No entity selected" ===
+    if (ImGui::BeginPopupModal("No entity selected", NULL, ImGuiWindowFlags_AlwaysAutoResize)) {
+        ImGui::Text("Choose entity from the list.");
+        if (ImGui::Button("OK", ImVec2(120, 0))) {
+            ImGui::CloseCurrentPopup();
+        }
+        ImGui::EndPopup();
+    }
 }
 
-void EditorUI::drawHierarchyWindow() {
+void EditorUI::drawSceneHierarchy() {
     ImGui::Begin("Scene Hierarchy");
 
     for (auto& entity : m_entityManager.getEntities()) {
@@ -257,9 +269,7 @@ void EditorUI::drawInspectorWindow() {
     r_height = std::clamp(r_height, 1, static_cast<int>(texSize.y) - r_top);
 
     // Сохраняем изменения при деактивации поля ввода
-    if (ImGui::IsItemDeactivated()) {
-        selectedEntity->setTextureRect(sf::IntRect(r_left, r_top, r_width, r_height));
-    }
+    selectedEntity->setTextureRect(sf::IntRect(r_left, r_top, r_width, r_height));
 
     // === Состояние объекта ===
     bool moveable = selectedEntity->checkMoveable();
@@ -286,5 +296,77 @@ void EditorUI::drawGameView() {
 
     // Здесь можно реализовать логику перемещения объекта мышью по сцене
 
+    ImGui::End();
+}
+
+void EditorUI::drawCreateEntityWindow() {
+    ImGui::SetNextWindowSize(ImVec2(300, 250), ImGuiCond_FirstUseEver);
+    if (ImGui::Begin("Create New Entity", &showCreateEntityWindow)) {
+
+        static char newEntityName[128] = "";   // Имя сущности
+        std::string newEntityNameStr;
+
+        // Поле ввода имени сущности
+        ImGui::InputText("Entity Name", newEntityName, IM_ARRAYSIZE(newEntityName));
+
+        // Выбор текстуры из списка
+        const auto& allTextures = ResourceManager::getAllTextures();
+        std::vector<std::string> textureNames;
+        for (const auto& [name, info] : allTextures) {
+            textureNames.push_back(name);
+        }
+
+        static int selectedTextureIndex = 0;
+        if (!textureNames.empty()) {
+            const char* previewValue = textureNames[selectedTextureIndex].c_str();
+            if (ImGui::BeginCombo("Select Texture", previewValue)) {
+                for (int i = 0; i < textureNames.size(); i++) {
+                    bool isSelected = (i == selectedTextureIndex);
+                    if (ImGui::Selectable(textureNames[i].c_str(), isSelected)) {
+                        selectedTextureIndex = i;
+                        selectedTextureNameForEntity = textureNames[i];
+                    }
+                    if (isSelected) ImGui::SetItemDefaultFocus();
+                }
+                ImGui::EndCombo();
+            }
+        } else {
+            ImGui::Text("No textures loaded");
+        }
+
+        // Поля ввода координат
+        static float x = 0.0f, y = 0.0f;
+        ImGui::InputFloat("X Position", &x);
+        ImGui::InputFloat("Y Position", &y);
+
+        // Поля ввода скорости (опционально)
+        static float vx = 0.0f, vy = 0.0f;
+        ImGui::InputFloat("Speed X", &vx);
+        ImGui::InputFloat("Speed Y", &vy);
+
+        // Кнопка создания
+        if (ImGui::Button("Create", ImVec2(-1, 0))) {
+            try {
+                int newID = m_entityManager.getNextId(); // или любая логика генерации ID
+                auto entity = std::make_shared<Entity>(
+                    selectedTextureNameForEntity,
+                    newID,
+                    x, y,
+                    vx, vy
+                );
+                entity->makeMoveable();
+                m_entityManager.addEntity(entity, newEntityNameStr.assign(newEntityName));
+                showCreateEntityWindow = false;
+            } catch (const std::exception& e) {
+                std::cerr << "Ошибка при создании сущности: " << e.what() << std::endl;
+            }
+        }
+
+        ImGui::SameLine();
+        if (ImGui::Button("Cancel", ImVec2(-1, 0))) {
+            showCreateEntityWindow = false;
+        }
+
+    }
     ImGui::End();
 }
