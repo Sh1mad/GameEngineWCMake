@@ -4,8 +4,6 @@
 #include "EditorUI.h"
 #include <iostream>
 #include "ResourceManager.h"
-#include <imgui.h>
-#include <imgui-SFML.h>
 #include <tinyfiledialogs.h> // Библиотека для работы с файлами в файловой системе
 
 EditorUI::EditorUI(sf::RenderWindow& window, EntityManager& entityManager, ProjectManager& projectManager)
@@ -23,6 +21,7 @@ void EditorUI::render() {
     if (showSceneHierarchy) drawSceneHierarchy();
     if (selectedEntity) drawInspectorWindow();
     if (showCreateEntityWindow) drawCreateEntityWindow();
+    if (showScenePreviewWindow) drawScenePreview();
 
     ImGui::Render();
     ImGui::SFML::Render(m_window);
@@ -73,6 +72,12 @@ void EditorUI::drawToolBar() {
     if (ImGui::Button("Add Entity")) {
         showCreateEntityWindow = !showCreateEntityWindow;
     }
+    ImGui::SameLine();
+
+    if (ImGui::Button("Scene Preview")) {
+        showScenePreviewWindow = !showScenePreviewWindow;
+    }
+    ImGui::SameLine();
 
     ImGui::End();
 
@@ -283,22 +288,6 @@ void EditorUI::drawInspectorWindow() {
     ImGui::End();
 }
 
-void EditorUI::drawGameView() {
-    ImGui::Begin("Level designer");
-
-    ImVec2 canvasSize = ImGui::GetContentRegionAvail();
-    ImGui::InvisibleButton("Canvas", canvasSize);
-    ImVec2 canvas_p0 = ImGui::GetItemRectMin();
-    ImVec2 canvas_p1 = ImGui::GetItemRectMax();
-
-    // ImGui::SetCursorScreenPos(canvas_p0);
-    // ImGui::Image((void*)(intptr_t)m_window.getSystemHandle(), canvasSize);
-
-    // Здесь можно реализовать логику перемещения объекта мышью по сцене
-
-    ImGui::End();
-}
-
 void EditorUI::drawCreateEntityWindow() {
     ImGui::SetNextWindowSize(ImVec2(300, 250), ImGuiCond_FirstUseEver);
     if (ImGui::Begin("Create New Entity", &showCreateEntityWindow)) {
@@ -369,4 +358,102 @@ void EditorUI::drawCreateEntityWindow() {
 
     }
     ImGui::End();
+}
+
+void EditorUI::drawScenePreview() {
+    ImGui::Begin("Scene Preview");
+
+    static float sceneScale = 0.5f;
+    static float previewWidth = 600.0f;
+    static float previewHeight = 400.0f;
+
+    ImGui::SliderFloat("Scale", &sceneScale, 0.25f, 2.0f);
+    ImGui::SliderFloat("Width", &previewWidth, 200.0f, 1000.0f);
+    ImGui::SliderFloat("Height", &previewHeight, 200.0f, 800.0f);
+
+    ImVec2 sceneSize(previewWidth, previewHeight);
+    ImGui::InvisibleButton("##scene", sceneSize);
+    ImDrawList* drawList = ImGui::GetWindowDrawList();
+    ImVec2 scenePos = ImGui::GetItemRectMin();
+
+    // === Сетка фона (необязательно) ===
+    for (int x = 0; x < previewWidth; x += 32) {
+        drawList->AddLine({scenePos.x + x, scenePos.y}, {scenePos.x + x, scenePos.y + previewHeight}, IM_COL32(100, 100, 100, 50));
+    }
+    for (int y = 0; y < previewHeight; y += 32) {
+        drawList->AddLine({scenePos.x, scenePos.y + y}, {scenePos.x + previewWidth, scenePos.y + y}, IM_COL32(100, 100, 100, 50));
+    }
+
+    // === Отрисовка сущностей ===
+    for (const auto& entity : m_entityManager.getEntities()) {
+        const sf::Sprite& sprite = *entity->getSprite();
+        const sf::Texture* texture = sprite.getTexture();
+        if (!texture) continue;
+
+        const sf::IntRect& rect = sprite.getTextureRect();
+        sf::Vector2f pos = entity->getPosition();
+
+        // UV координаты текстуры
+        ImVec2 uv0(
+            static_cast<float>(rect.left) / texture->getSize().x,
+            static_cast<float>(rect.top) / texture->getSize().y
+        );
+        ImVec2 uv1(
+            static_cast<float>(rect.left + rect.width) / texture->getSize().x,
+            static_cast<float>(rect.top + rect.height) / texture->getSize().y
+        );
+
+        // Позиция и размер с масштабированием
+        ImVec2 scaledPosition(scenePos.x + pos.x * sceneScale, scenePos.y + pos.y * sceneScale);
+        ImVec2 size(rect.width * sceneScale, rect.height * sceneScale);
+
+        // Текстура
+        ImTextureID textureID = (ImTextureID)(texture->getNativeHandle());
+
+        // Отрисовка текстуры
+        drawList->AddImage(
+            textureID,
+            scaledPosition,
+            {scaledPosition.x + size.x, scaledPosition.y + size.y},
+            uv0,
+            uv1,
+            IM_COL32_WHITE
+        );
+
+        // Обводка выбранного объекта
+        if (selectedEntity == entity) {
+            drawList->AddRect(scaledPosition, {scaledPosition.x + size.x, scaledPosition.y + size.y}, IM_COL32(255, 255, 0, 128), 0, 0, 2.0f);
+        }
+
+        // === Проверяем, находится ли курсор над сущностью ===
+        bool isOverEntity = false;
+        ImVec2 currentMousePos = ImGui::GetMousePos();
+
+        if (currentMousePos.x >= scaledPosition.x && 
+            currentMousePos.x <= scaledPosition.x + size.x &&
+            currentMousePos.y >= scaledPosition.y && 
+            currentMousePos.y <= scaledPosition.y + size.y)
+        {
+            isOverEntity = true;
+        }
+
+        // === Обработка клика для выбора сущности ===
+        if (ImGui::IsMouseClicked(0) && isOverEntity) {
+            selectedEntity = entity;
+        }
+
+        // === Обработка перетаскивания ===
+        if (ImGui::IsMouseDragging(0) && selectedEntity == entity && isOverEntity) {
+            ImVec2 delta = ImGui::GetMouseDragDelta(0);
+            sf::Vector2f newPosition(
+                pos.x + delta.x / sceneScale,
+                pos.y + delta.y / sceneScale
+            );
+            entity->setPosition(newPosition);
+            ImGui::ResetMouseDragDelta(); // Чтобы не скакала позиция
+        }
+    }
+
+    ImGui::End();
+    
 }
