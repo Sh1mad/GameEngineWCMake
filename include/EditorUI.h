@@ -5,12 +5,21 @@
 #include <imgui.h>
 #include <imgui-SFML.h>
 
+enum class AppState{
+    MainMenu,
+    NewProject,
+    OpenProject,
+    Editor
+};
+
 class EditorUI {
 public:
-    explicit EditorUI(sf::RenderWindow& window, EntityManager& entityManager, ProjectManager& projectManger);
+    explicit EditorUI(sf::RenderWindow& window, ProjectManager& projectManger);
 
     void update(sf::Time dt);
-    void render();
+    AppState render();
+
+    void setAppState(AppState appState); // Для связи с WindowRenderer
 
 private:
     sf::RenderWindow& m_window;
@@ -38,4 +47,6 @@ private:
     void drawToolBar();                    // Функция для вывода панели инструментов
     void drawTextureManager();             // Функция для вывода окна с текстурами
     void drawCreateEntityWindow();         // Функция для вывода окна создания сущности
+
+    AppState m_appState = AppState::Editor;        // Указатель для определения текущего состояния системы
 };

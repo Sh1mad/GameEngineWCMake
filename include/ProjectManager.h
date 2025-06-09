@@ -24,12 +24,14 @@ public:
     };
 
     // Конструктор
-    explicit ProjectManager(const std::string& projectDir = "./projects/");
+    explicit ProjectManager(const std::string& projectDir = "../projects/");
 
     // Работа с проектами
     bool createNewProject(const std::string& projectName, int width, int height, bool fullscreen);
     bool openProject(const std::string& path);
     bool saveCurrentProject();
+
+    void setProjectDir(const std::string& projectDir);
 
     // Получить данные проекта
     const ProjectData& getProjectInfo() const;

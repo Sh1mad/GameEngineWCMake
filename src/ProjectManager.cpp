@@ -10,6 +10,10 @@ using json = nlohmann::json;
 ProjectManager::ProjectManager(const std::string& projectDir)
     : projectDir(projectDir) {}
 
+void ProjectManager::setProjectDir(const std::string& n_projectDir){
+    projectDir = n_projectDir;
+}
+
 // Создание нового проекта
 bool ProjectManager::createNewProject(const std::string& projectName, int width, int height, bool fullscreen) {
     currentProject.name = projectName;

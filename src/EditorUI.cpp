@@ -6,14 +6,14 @@
 #include "ResourceManager.h"
 #include <tinyfiledialogs.h> // Библиотека для работы с файлами в файловой системе
 
-EditorUI::EditorUI(sf::RenderWindow& window, EntityManager& entityManager, ProjectManager& projectManager)
-    : m_window(window), m_entityManager(entityManager), m_projectManager(projectManager){}
+EditorUI::EditorUI(sf::RenderWindow& window, ProjectManager& projectManager)
+    : m_window(window), m_entityManager(projectManager.getEntityManager()), m_projectManager(projectManager){}
 
 void EditorUI::update(sf::Time dt){
     ImGui::SFML::Update(m_window, dt);
 }
 
-void EditorUI::render() {
+AppState EditorUI::render() {
     drawMenuBar();
     drawToolBar();
 
@@ -23,8 +23,7 @@ void EditorUI::render() {
     if (showCreateEntityWindow) drawCreateEntityWindow();
     if (showScenePreviewWindow) drawScenePreview();
 
-    ImGui::Render();
-    ImGui::SFML::Render(m_window);
+    return m_appState;
 }
 
 // ======== PRIVATE METHODS ===========
@@ -32,26 +31,37 @@ void EditorUI::render() {
 void EditorUI::drawMenuBar() {
     if (ImGui::BeginMainMenuBar()) {
         if (ImGui::BeginMenu("File")) {
-            if (ImGui::MenuItem("New project")) {
-                // TODO: переключить состояние приложения
+            if (ImGui::MenuItem("New Project")) {
+                // Отправляем сигнал о переходе в NewProject
+                m_appState = AppState::NewProject;
             }
-            if (ImGui::MenuItem("Open project")) {
-                // TODO: вызвать openProject()
+
+            if (ImGui::MenuItem("Open Project")) {
+                // Переход в OpenProject
+                m_appState = AppState::OpenProject;
             }
-            if (ImGui::MenuItem("Save scene")) {
+
+            if (ImGui::MenuItem("Save Scene")) {
+                // Сохраняем текущий проект
                 m_projectManager.saveCurrentProject();
             }
-            ImGui::EndMenu();
-        }
 
-        if (ImGui::BeginMenu("Designer")) {
-            if (ImGui::MenuItem("Project settings")) {}
-            if (ImGui::MenuItem("Plaggins")) {}
+            ImGui::Separator();
+
+            if (ImGui::MenuItem("Exit to Main Menu")) {
+                // Возвращаемся в главное меню
+                m_appState = AppState::MainMenu;
+            }
+
             ImGui::EndMenu();
         }
 
         ImGui::EndMainMenuBar();
     }
+}
+
+void EditorUI::setAppState(AppState appState) {
+    m_appState = appState; 
 }
 
 void EditorUI::drawToolBar() {

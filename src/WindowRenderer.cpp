@@ -1,32 +1,39 @@
 #include "WindowRenderer.h"
 #include <imGui.h>
 #include <imgui-SFML.h>
+#include <tinyfiledialogs.h>
 
-WindowRenderer::WindowRenderer(sf::RenderWindow& window)
-    : m_window(window) {}
+WindowRenderer::WindowRenderer(sf::RenderWindow& window, ProjectManager& projectManager)
+    : m_window(window), editorUI(window, projectManager), m_projectManager(projectManager) {}
 
-AppState WindowRenderer::render(AppState currentState){
+AppState WindowRenderer::render(AppState currentState) {
     AppState nextState;
 
-    ImGui::SetNextWindowSize({400, 300}, ImGuiCond_Once);
-    ImGui::Begin("Main Menu", nullptr, ImGuiWindowFlags_NoResize);
+    if (currentState != AppState::Editor) {
+        ImGui::SetNextWindowSize({400, 300}, ImGuiCond_Once);
+        ImGui::Begin("Main Menu", nullptr, ImGuiWindowFlags_NoResize);
 
-    switch(currentState){
-        case AppState::MainMenu:
-            nextState = renderMainMenu();
-            break;
-        case AppState::NewProject:
-            nextState = renderNewProjectMenu();
-            break;
-        case AppState::OpenProject:
-            nextState = renderOpenProjectMenu();
-            break;
-        default:
-            nextState = AppState::MainMenu;
+        switch(currentState){
+            case AppState::MainMenu:
+                nextState = renderMainMenu();
+                break;
+            case AppState::NewProject:
+                nextState = renderNewProjectMenu();
+                break;
+            case AppState::OpenProject:
+                nextState = renderOpenProjectMenu();
+                break;
+            default:
+                nextState = AppState::MainMenu;
+        }
+
+        ImGui::End();
+    } else {
+        // Если мы уже в Editor, то MainMenu не отрисовываем
+        editorUI.setAppState(AppState::Editor);
+        nextState = renderEditor();
     }
 
-    ImGui::End();
-    
     return nextState;
 }
 
@@ -48,53 +55,128 @@ AppState WindowRenderer::renderMainMenu(){
     return AppState::MainMenu;
 }
 
-AppState WindowRenderer::renderNewProjectMenu(){
-    ImGui::Text("New project creation");
+AppState WindowRenderer::renderNewProjectMenu() {
+    ImGui::Text("Create New Project");
     ImGui::Separator();
 
-    ImGui::InputText("Name of project", m_projectName, IM_ARRAYSIZE(m_projectName));
-    ImGui::InputText("Path", m_projectPath, IM_ARRAYSIZE(m_projectPath));
+    // Ввод имени проекта
+    static char projectName[128] = "MyGame";
+    ImGui::InputText("Project Name", projectName, IM_ARRAYSIZE(projectName));
 
-    if (ImGui::Button("View...")){
-        // Какой-то диалог выбора папки
-    }
-
-    if (ImGui::Button("Create")){
-        // Логика создания проекта (можно передать данные в ProjectManager)
-        return AppState::Editor;
+    // Выбор пути проекта
+    static char projectPath[256] = "../projects/";
+    if (ImGui::Button("Browse...")) {
+        const char* path = tinyfd_selectFolderDialog("Choose Folder", "../projects/");
+        if (path) {
+            std::strncpy(projectPath, path, IM_ARRAYSIZE(projectPath));
+        }
     }
 
     ImGui::SameLine();
+    ImGui::InputText("##ProjectPath", projectPath, IM_ARRAYSIZE(projectPath), ImGuiInputTextFlags_ReadOnly);
 
-    if (ImGui::Button("Back")){
+    // Настройки окна
+    static int width = 800;
+    static int height = 600;
+    static bool fullscreen = false;
+
+    ImGui::InputInt("Width", &width);
+    ImGui::InputInt("Height", &height);
+    ImGui::Checkbox("Fullscreen", &fullscreen);
+
+    // Кнопки управления
+    if (ImGui::Button("Create", {120, 0})) {
+        try {
+            // Установка пути к проекту
+            m_projectManager.setProjectDir(std::string(projectPath) + "/" + projectName);
+
+            // Создание проекта
+            m_projectManager.createNewProject(projectName, width, height, fullscreen);
+            return AppState::Editor;
+        } catch (const std::exception& e) {
+            ImGui::OpenPopup("Error");
+        }
+    }
+
+    ImGui::SameLine();
+    if (ImGui::Button("Back", {120, 0})) {
         return AppState::MainMenu;
+    }
+
+    // Диалог ошибок
+    if (ImGui::BeginPopupModal("Error", NULL, ImGuiWindowFlags_AlwaysAutoResize)) {
+        ImGui::Text("Failed to create project.\nCheck:\n- Path is valid\n- No existing folder with this name");
+
+        if (ImGui::Button("OK", ImVec2(120, 0))) {
+            ImGui::CloseCurrentPopup();
+        }
+
+        ImGui::EndPopup();
     }
 
     return AppState::NewProject;
 }
 
-AppState WindowRenderer::renderOpenProjectMenu(){
-    static char projectPah[256] = "./projects/";
-
-    ImGui::Text("Open existing project");
+AppState WindowRenderer::renderOpenProjectMenu() {
+    ImGui::Text("Open Existing Project");
     ImGui::Separator();
 
-    ImGui::InputText("Path to project", projectPah, IM_ARRAYSIZE(projectPah));
-    
-    if (ImGui::Button("View...")){
-        // Надо реализовать выбор файла
-    }
+    static char projectPath[256] = "../projects/";
 
-    if (ImGui::Button("Open")){
-        // Логика загрузки проекта
-        return AppState::Editor;
+    if (ImGui::Button("Browse...", {120, 0})) {
+        const char* filters[] = {"*.json"};
+        const char* result = tinyfd_openFileDialog(
+            "Select project.json",
+            "", 
+            1, 
+            filters,
+            "Project files (*.json)",
+            0
+        );
+
+        if (result) {
+            std::strncpy(projectPath, result, IM_ARRAYSIZE(projectPath));
+        }
     }
 
     ImGui::SameLine();
+    ImGui::InputText("##ProjectPath", projectPath, IM_ARRAYSIZE(projectPath), ImGuiInputTextFlags_ReadOnly);
 
-    if (ImGui::Button("Back")){
+    if (ImGui::Button("Open", {120, 0})) {
+        try {
+            std::string filePath = projectPath;
+            std::string projectDir = filePath;
+            if (projectDir.find_last_of("/") != std::string::npos)
+                projectDir = projectDir.substr(0, projectDir.find_last_of("/"));
+
+            m_projectManager.setProjectDir(projectDir);
+            if (m_projectManager.openProject(filePath)) {
+                return AppState::Editor;
+            }
+        } catch (...) {
+            ImGui::OpenPopup("Error");
+        }
+    }
+
+    ImGui::SameLine();
+    if (ImGui::Button("Back", {120, 0})) {
         return AppState::MainMenu;
     }
 
+    // Диалог ошибок
+    if (ImGui::BeginPopupModal("Error", NULL, ImGuiWindowFlags_AlwaysAutoResize)) {
+        ImGui::Text("Could not open project.\nCheck:\n- File exists\n- It's a valid project file");
+
+        if (ImGui::Button("OK", ImVec2(120, 0))) {
+            ImGui::CloseCurrentPopup();
+        }
+
+        ImGui::EndPopup();
+    }
+
     return AppState::OpenProject;
+}
+
+AppState WindowRenderer::renderEditor() {
+    return editorUI.render();
 }
